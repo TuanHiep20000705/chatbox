@@ -7,52 +7,50 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.mth.example.buoi2telegram.R
 
 enum class ItemType {
-    FRIENDMESS, MYMESS, LOADMORE
+    FRIEND_MESS, MY_MESS, LOAD_MORE
 }
 
-class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(messageDiffUtil) {
-    private var isLoadingAdd: Boolean = false
+class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(MessageDiffUtil) {
 
-    private var listData = mutableListOf<MessageItem>()
-
-    fun setData(list: MutableList<MessageItem>) {
-        this.listData = list
-        submitList(listData)
-    }
-
-    object messageDiffUtil : DiffUtil.ItemCallback<MessageItem>() {
+    object MessageDiffUtil : DiffUtil.ItemCallback<MessageItem>() {
         override fun areItemsTheSame(oldItem: MessageItem, newItem: MessageItem): Boolean {
             return oldItem::class.java.simpleName == newItem::class.java.simpleName
         }
 
         override fun areContentsTheSame(oldItem: MessageItem, newItem: MessageItem): Boolean {
-            return oldItem.id == newItem.id
+            return when (oldItem) {
+                is MessageItem.LoadMore -> {
+                    oldItem.id == newItem.id
+                }
+                is MessageItem.MyMessage -> {
+                    oldItem.contentMessage == (newItem as MessageItem.MyMessage).contentMessage
+                }
+                is MessageItem.FriendMessage -> {
+                    oldItem.contentMessage == (newItem as MessageItem.FriendMessage).contentMessage
+                }
+            }
         }
-
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (listData != null && position == listData.size - 1 && isLoadingAdd) {
-            ItemType.LOADMORE.ordinal
-        } else if (getItem(position).id == ItemType.MYMESS.toString()) {
-            ItemType.MYMESS.ordinal
-        } else {
-            ItemType.FRIENDMESS.ordinal
+        return when (getItem(position)) {
+            is MessageItem.FriendMessage -> ItemType.FRIEND_MESS.ordinal
+            is MessageItem.MyMessage -> ItemType.MY_MESS.ordinal
+            else -> ItemType.LOAD_MORE.ordinal
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return when (viewType) {
-            ItemType.MYMESS.ordinal -> {
+            ItemType.MY_MESS.ordinal -> {
                 MyMessViewHolder.create(parent)
             }
-            ItemType.FRIENDMESS.ordinal -> {
+            ItemType.FRIEND_MESS.ordinal -> {
                 FriendMessViewHolder.create(parent)
             }
             else -> {
@@ -63,10 +61,10 @@ class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(messageDiffUtil) {
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         when (getItemViewType(position)) {
-            ItemType.MYMESS.ordinal -> {
+            ItemType.MY_MESS.ordinal -> {
                 (holder as MyMessViewHolder).bind(getItem(position) as MessageItem.MyMessage)
             }
-            ItemType.FRIENDMESS.ordinal -> {
+            ItemType.FRIEND_MESS.ordinal -> {
                 (holder as FriendMessViewHolder).bind(getItem(position) as MessageItem.FriendMessage)
             }
             else -> {
@@ -79,8 +77,8 @@ class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(messageDiffUtil) {
         private val txtTime: TextView = itemView.findViewById(R.id.txt_time_item_mymessage)
         private val txtContent: TextView = itemView.findViewById(R.id.txt_content_item_mymessage)
         fun bind(myMessage: MessageItem.MyMessage) {
-            txtTime.setText(myMessage.timeMessage)
-            txtContent.setText(myMessage.contentMessage)
+            txtTime.text = myMessage.timeMessage
+            txtContent.text = myMessage.contentMessage
         }
 
         companion object {
@@ -102,9 +100,9 @@ class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(messageDiffUtil) {
 
         fun bind(friendMessage: MessageItem.FriendMessage) {
             imgFriend.setImageResource(friendMessage.avatID)
-            txtNameFriend.setText(friendMessage.nameFriend)
-            txtTime.setText(friendMessage.timeMessage)
-            txtContent.setText(friendMessage.contentMessage)
+            txtNameFriend.text = friendMessage.nameFriend
+            txtTime.text = friendMessage.timeMessage
+            txtContent.text = friendMessage.contentMessage
         }
 
         companion object {
@@ -126,22 +124,6 @@ class MessageAdapter : ListAdapter<MessageItem, ViewHolder>(messageDiffUtil) {
                     .inflate(R.layout.item_loadmore, parent, false)
                 return LoadingViewHolder(view)
             }
-        }
-    }
-
-    fun addFooterLoading() {
-        isLoadingAdd = true
-        listData.add(MessageItem.MyMessage("", "", ""))
-        submitList(listData)
-    }
-
-    fun removeFooterLoading() {
-        isLoadingAdd = false
-        val position = listData.size - 1
-        val messageItem = getItem(position)
-        if (messageItem != null) {
-            currentList.removeAt(position)
-            notifyItemRemoved(position)
         }
     }
 }
