@@ -3,18 +3,19 @@ package com.mth.example.buoi2telegram.ui
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-
 abstract class PaginationScrollListener(private val linearLayoutManager: LinearLayoutManager) :
     RecyclerView.OnScrollListener() {
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
         super.onScrolled(recyclerView, dx, dy)
-        val visibleItemCount = linearLayoutManager.childCount
+        if (dy == 0) {
+            return
+        }
         val totalItemCount = linearLayoutManager.itemCount
-        val firstVisibleItemPosition = linearLayoutManager.findFirstVisibleItemPosition()
+        val lastVisibleItemPosition = linearLayoutManager.findLastVisibleItemPosition()
         if (isLoading() || isLastPage()) {
             return
         }
-        if (firstVisibleItemPosition >= 0 && visibleItemCount + firstVisibleItemPosition >= totalItemCount) {
+        if (LOAD_MORE_THRESHOLD + lastVisibleItemPosition > totalItemCount) {
             loadMoreItem()
         }
     }
@@ -22,4 +23,7 @@ abstract class PaginationScrollListener(private val linearLayoutManager: LinearL
     abstract fun loadMoreItem()
     abstract fun isLoading(): Boolean
     abstract fun isLastPage(): Boolean
+    companion object {
+        private const val LOAD_MORE_THRESHOLD = 3
+    }
 }
